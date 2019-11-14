@@ -1,35 +1,19 @@
-import wikipedia
+from wikipedia import *
+import os
+from pprint import pprint
 
-map_1 = [
-    [0, 1, 1, 1],
-    [1, 0, 1, 0],
-    [1, 1, 1, 1]
-]
-
-
-def neighbors(id, m):
-    r, c = id
-
-    if m[r][c] == 0:
-        return []
-
-    r_pos = [r + dr for dr in range(-1, 2) if 0 <= r + dr < len(m)]
-    c_pos = [c + dc for dc in range(-1, 2) if 0 <= c + dc < len(m[0])]
-
-    neighbors = []
-    for row in r_pos:
-        for col in c_pos:
-            if m[row][col] == 1 and (abs(c - col) + abs(r - row)) < 2:
-                neighbors.append((row, col))
-
-    print("Available neighbors for", id, 'were ', neighbors)
-    return neighbors
-
-
-def map_neighbors(id): return neighbors(id, map_1)
+distances_memo_dump = 'distances_memo_dump.pl'
+distances_memo = None
 
 
 def BFS(source, target, neighbors, max_hops=10):
+    global distances_memo
+
+    if distances_memo == None and os.path.isfile(distances_memo_dump):
+        distances_memo = pickle.load(open(distances_memo_dump, "rb"))
+    elif distances_memo == None:
+        distances_memo = {}
+
     visited = set()
     parent = {source: None}
     current = None
@@ -43,7 +27,9 @@ def BFS(source, target, neighbors, max_hops=10):
 
         if current not in visited and current_distance <= max_hops:
             visited.add(current)
-            for n in neighbors(current):
+            neighbor_list = neighbors(current)
+            neighbor_list.sort(key=lambda el: distances_memo.get(el, 100))
+            for n in neighbor_list:
                 if n not in visited:
                     parent[n] = current if n not in parent else parent[n]
                     q.append((n, current_distance + 1))
@@ -58,20 +44,23 @@ def BFS(source, target, neighbors, max_hops=10):
         reverse_path = [target]
         while reverse_path[-1] is not None:
             reverse_path.append(parent[reverse_path[-1]])
-        path = reverse_path[::-1]
+        path = reverse_path[::-1][1:]
+
+        for i in range(len(path) - 1):
+            distances_memo[path[i]] = len(path) - i - 1
+        pickle.dump(distances_memo, open(distances_memo_dump, "wb"))
 
         print('A path was found!')
-        print('The path is :', str(path[1:]))
+        print('The path is :', str(path))
 
     else:
         print("Target could not be found withing", max_hops, "steps")
 
 
-# start = (0, 1)
-# goal = (2, 3)
-
-# BFS(start, goal, map_neighbors, max_hops=10)
-
-start = 'Jonesboro Airport'
 goal = 'Adolf Hitler'
-BFS(start, goal, wikipedia.get_links, max_hops=5)
+
+for _ in range(100):
+    start = get_random_title()
+    BFS(start, goal, get_links, max_hops=5)
+
+pprint(distances_memo)

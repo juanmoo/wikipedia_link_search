@@ -1,13 +1,27 @@
 import requests
 import json
 import pprint
+import pickle
+import os
 
 pp = pprint.PrettyPrinter(indent=4)
 
 api_url = 'https://en.wikipedia.org/w/api.php'
 
+dump_file = 'neighbors_dump.pl'
+memo = None
+
 
 def get_links(page_title):
+    global memo
+    if memo == None and os.path.isfile(dump_file):
+        memo = pickle.load(open(dump_file, "rb"))
+    elif memo == None:
+        memo = {}
+
+    if page_title in memo:
+        return memo[page_title]
+
     params = {
         'action': 'query',
         'prop': 'links',
@@ -36,8 +50,21 @@ def get_links(page_title):
 
         links.extend(link_list)
 
+    memo[page_title] = links
+    pickle.dump(memo, open(dump_file, "wb"))
+
     return links
 
 
-# links = get_links('Chinese Center on Long Island')
-# print('num_links:', links)
+def get_random_title():
+    params = {
+        'action': 'query',
+        'format': 'json',
+        'list': 'random',
+        'rnfilterredir': 'nonredirects',
+        'rnnamespace': 0,
+        'rnlimit': 1
+    }
+    res = json.loads(requests.get(api_url, params=params).text)[
+        'query']['random'][0]['title']
+    return res
