@@ -58,9 +58,20 @@ def BFS(source, target, neighbors, max_hops=10):
 
 
 goal = 'Adolf Hitler'
+#start = 'No Interference'
+#BFS(start, goal, get_links, max_hops=5)
 
-for _ in range(100):
+pages_searched = []
+for i in range(20):
+    print('Starting item #', i, '----')
     start = get_random_title()
-    BFS(start, goal, get_links, max_hops=5)
+    BFS(start, goal, get_links, max_hops=6)
+    pages_searched.append(start)
+
+search = {'pages_searched': pages_searched, 'distances': distances_memo}
+json_search = json.dumps(search)
+with open('search_results.json', 'w+') as f:
+    f.write(json_search)
+
 
 pprint(distances_memo)
